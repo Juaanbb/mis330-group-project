@@ -1,0 +1,120 @@
+# Project Technology Stack & Guidelines
+
+## Frontend
+- Use **HTML/CSS** with a simple single-page interface
+- Use **plain JavaScript (ES6+)**
+- Do NOT use frameworks like React, Vue, or Angular
+- Use a single `index.html` file with a main div (id="app")
+- Use JavaScript to dynamically update the UI (DOM manipulation)
+- Keep the UI simple and clean for presentation purposes
+
+## Styling
+- Use **Bootstrap 5 (CDN)** for all styling and layout
+- Prefer Bootstrap classes over custom CSS
+- Only write custom CSS when absolutely necessary
+
+Bootstrap CDN:
+https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css
+
+Bootstrap JS:
+https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js
+
+
+## Backend
+- Use **ASP.NET Core Web API**
+- Language: **C#**
+- Build simple REST API endpoints
+- Keep backend logic easy to understand and explain
+- Avoid complex patterns or over-engineering
+- Focus on clear routes and simple controllers
+
+
+## Database
+- Use **MySQL** (NOT SQLite)
+- All data must be stored in a MySQL database
+- Backend connects to MySQL using a connection string
+- Write SQL queries clearly and simply
+- Do NOT use SQLite or Microsoft.Data.Sqlite
+
+## Project Goal
+- This is a **MIS 330 group project**
+- The main goal is to demonstrate interaction between:
+  frontend → backend → MySQL database
+- The frontend does NOT need to be advanced
+- Focus on functionality and clarity for presentation
+- Code should be easy to explain to a professor
+
+
+## Project Structure
+- Separate frontend and backend into different folders:
+
+Example:
+- /frontend → HTML, CSS, JavaScript
+- /backend → ASP.NET API
+- /database → SQL scripts (create tables, insert data, analysis queries)
+
+- Keep naming clean and consistent
+- Use meaningful file and variable names
+
+
+## Features to Support
+- Basic CRUD operations (create, read, update, delete)
+- Display data in tables
+- Submit data using forms
+- Simple navigation between sections
+- At least one “report” or data analysis display
+
+
+## Development Practices
+- Write clean, readable code
+- Prefer simple solutions over advanced ones
+- Use async/await for API calls in JavaScript
+- Handle errors simply (try/catch, basic messages)
+- Follow REST API best practices (GET, POST, PUT, DELETE)
+- Use proper HTTP status codes
+
+
+## File Organization
+- Frontend:
+  - index.html
+  - script.js (or multiple JS files)
+  - optional styles.css
+
+- Backend:
+  - Controllers/
+  - Models/
+  - Program.cs
+
+- Database:
+  - database_creation_queries.sql
+  - data_loading_queries.sql
+  - data_analysis_queries.sql
+
+
+## Dependencies
+- Frontend:
+  - ONLY Bootstrap via CDN (no npm, no frameworks)
+
+- Backend:
+  - Use standard .NET packages
+  - Use MySQL connector (e.g., MySql.Data or similar)
+
+- Database:
+  - MySQL only
+
+
+## Code Style
+- Use consistent indentation:
+  - 2 spaces for HTML/CSS/JS
+  - 4 spaces for C#
+- Keep functions small and focused
+- Comment important logic (especially API endpoints)
+
+
+## Important Constraints
+- Keep everything beginner-friendly
+- Do NOT over-engineer
+- Do NOT introduce unnecessary libraries
+- Do NOT use React or advanced frameworks
+- Do NOT use SQLite
+- Focus on making the project easy to demo and explain
