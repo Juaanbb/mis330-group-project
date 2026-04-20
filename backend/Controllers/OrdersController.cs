@@ -12,7 +12,7 @@ public class OrdersController : ControllerBase
     private readonly AppDbContext _db;
     public OrdersController(AppDbContext db) => _db = db;
 
-    // GET /orders — return all orders, newest first
+    // GET /orders
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -31,7 +31,7 @@ public class OrdersController : ControllerBase
         return Ok(orders);
     }
 
-    // POST /orders — create a new order
+    // POST /orders
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest req)
     {
@@ -50,6 +50,32 @@ public class OrdersController : ControllerBase
 
         return Created($"/orders/{order.OrderId}", new { id = order.OrderId });
     }
+
+    // PUT /orders/{id} — update status
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateOrderRequest req)
+    {
+        var order = await _db.Orders.FindAsync(id);
+        if (order == null) return NotFound();
+
+        order.OrderStatus = req.OrderStatus ?? order.OrderStatus;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { id = order.OrderId });
+    }
+
+    // DELETE /orders/{id}
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var order = await _db.Orders.FindAsync(id);
+        if (order == null) return NotFound();
+
+        _db.Orders.Remove(order);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
 }
 
 public record CreateOrderRequest(int CustomerId, string? Address, string? City);
+public record UpdateOrderRequest(string? OrderStatus);

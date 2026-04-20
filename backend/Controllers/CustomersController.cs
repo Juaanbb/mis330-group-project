@@ -12,7 +12,7 @@ public class CustomersController : ControllerBase
     private readonly AppDbContext _db;
     public CustomersController(AppDbContext db) => _db = db;
 
-    // GET /customers — return all customers
+    // GET /customers
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -29,9 +29,9 @@ public class CustomersController : ControllerBase
         return Ok(customers);
     }
 
-    // POST /customers — add a new customer
+    // POST /customers
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateCustomerRequest req)
+    public async Task<IActionResult> Create([FromBody] SaveCustomerRequest req)
     {
         var parts = (req.Name ?? "").Trim().Split(' ', 2);
         var customer = new Customer
@@ -49,6 +49,35 @@ public class CustomersController : ControllerBase
 
         return Created($"/customers/{customer.CustomerId}", new { id = customer.CustomerId });
     }
+
+    // PUT /customers/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] SaveCustomerRequest req)
+    {
+        var customer = await _db.Customers.FindAsync(id);
+        if (customer == null) return NotFound();
+
+        var parts = (req.Name ?? "").Trim().Split(' ', 2);
+        customer.FirstName   = parts[0];
+        customer.LastName    = parts.Length > 1 ? parts[1] : "";
+        customer.Email       = req.Email ?? customer.Email;
+        customer.PhoneNumber = string.IsNullOrWhiteSpace(req.Phone) ? null : req.Phone;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { id = customer.CustomerId });
+    }
+
+    // DELETE /customers/{id}
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var customer = await _db.Customers.FindAsync(id);
+        if (customer == null) return NotFound();
+
+        _db.Customers.Remove(customer);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
 }
 
-public record CreateCustomerRequest(string? Name, string? Email, string? Phone);
+public record SaveCustomerRequest(string? Name, string? Email, string? Phone);

@@ -12,7 +12,7 @@ public class ProductsController : ControllerBase
     private readonly AppDbContext _db;
     public ProductsController(AppDbContext db) => _db = db;
 
-    // GET /products — return all active products with their category name
+    // GET /products
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -22,26 +22,28 @@ public class ProductsController : ControllerBase
             from c in catGroup.DefaultIfEmpty()
             select new
             {
-                id       = p.ProductId,
-                name     = p.ProductName,
-                category = c != null ? c.CategoryName : "",
-                price    = p.Price,
-                quantity = p.QuantityOnHand
+                id         = p.ProductId,
+                name       = p.ProductName,
+                category   = c != null ? c.CategoryName : "",
+                categoryId = p.CategoryId,
+                price      = p.Price,
+                quantity   = p.QuantityOnHand
             }
         ).ToListAsync();
 
         return Ok(products);
     }
 
-    // POST /products — add a new product
+    // POST /products
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateProductRequest req)
+    public async Task<IActionResult> Create([FromBody] SaveProductRequest req)
     {
         var product = new Product
         {
             ProductName    = req.Name ?? "",
             Price          = req.Price,
             QuantityOnHand = req.Quantity,
+            CategoryId     = req.CategoryId,
             ReorderLevel   = 5,
             IsActive       = true
         };
@@ -51,6 +53,34 @@ public class ProductsController : ControllerBase
 
         return Created($"/products/{product.ProductId}", new { id = product.ProductId });
     }
+
+    // PUT /products/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] SaveProductRequest req)
+    {
+        var product = await _db.Products.FindAsync(id);
+        if (product == null) return NotFound();
+
+        product.ProductName    = req.Name ?? product.ProductName;
+        product.Price          = req.Price;
+        product.QuantityOnHand = req.Quantity;
+        product.CategoryId     = req.CategoryId;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { id = product.ProductId });
+    }
+
+    // DELETE /products/{id} — soft delete
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var product = await _db.Products.FindAsync(id);
+        if (product == null) return NotFound();
+
+        product.IsActive = false;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
 }
 
-public record CreateProductRequest(string? Name, decimal Price, int Quantity);
+public record SaveProductRequest(string? Name, decimal Price, int Quantity, int? CategoryId);

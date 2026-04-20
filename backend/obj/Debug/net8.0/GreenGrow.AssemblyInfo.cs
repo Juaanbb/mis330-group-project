@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GreenGrow")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4ee5f34fd2abdc400a99800f67072f6808a32d3f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d2d9af45cd9c5268ac29f990ce6af4e22b70bf66")]
 [assembly: System.Reflection.AssemblyProductAttribute("GreenGrow")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GreenGrow")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
