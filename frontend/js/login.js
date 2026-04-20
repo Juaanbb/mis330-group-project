@@ -96,8 +96,7 @@ function showLogin() {
         password: loginPass.value,
       });
       setCurrentUser(user);
-      document.getElementById("nav-username").textContent = user.name;
-      document.getElementById("main-nav").style.display = "";
+      renderShell(true, user);
       navigate("dashboard");
     } catch (err) {
       showError("Login failed: " + err.message);
@@ -116,8 +115,7 @@ function showLogin() {
         phone:    regPhone.value.trim() || null,
       });
       setCurrentUser(user);
-      document.getElementById("nav-username").textContent = user.name;
-      document.getElementById("main-nav").style.display = "";
+      renderShell(true, user);
       navigate("dashboard");
     } catch (err) {
       showError("Registration failed: " + err.message);

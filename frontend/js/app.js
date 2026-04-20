@@ -71,19 +71,81 @@ function clearCurrentUser() {
 
 function logout() {
   clearCurrentUser();
-  document.getElementById("main-nav").style.display = "none";
+  renderShell(false);
   showLogin();
+}
+
+// ─── Shell (navbar + layout) ───────────────────────────────────────────────
+function makeNavLink(page, label) {
+  const a = make("a", { class: "nav-link", text: label });
+  a.href = "#";
+  a.dataset.page = page;
+  a.addEventListener("click", e => { e.preventDefault(); navigate(page); });
+  const li = make("li", { class: "nav-item" });
+  li.appendChild(a);
+  return li;
+}
+
+function renderShell(loggedIn, user) {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+
+  if (!loggedIn) return;
+
+  const brand = make("a", { class: "navbar-brand fw-semibold", text: "GreenGrow Garden" });
+  brand.href = "#";
+
+  const togglerIcon = make("span", { class: "navbar-toggler-icon" });
+  const toggler = make("button", { class: "navbar-toggler", type: "button" });
+  toggler.setAttribute("data-bs-toggle", "collapse");
+  toggler.setAttribute("data-bs-target", "#mainNav");
+  toggler.appendChild(togglerIcon);
+
+  const navLinks = make("ul", { class: "navbar-nav me-auto" });
+  [["dashboard","Dashboard"],["customers","Customers"],["products","Products"],
+   ["orders","Orders"],["inventory","Inventory"],["employees","Employees"],["reports","Reports"]]
+    .forEach(([page, label]) => navLinks.appendChild(makeNavLink(page, label)));
+
+  const usernameSpan = make("span", { class: "navbar-text text-white small", id: "nav-username", text: user ? user.name : "" });
+  const usernameLi = make("li", { class: "nav-item me-2" });
+  usernameLi.appendChild(usernameSpan);
+
+  const logoutBtn = make("button", { class: "btn btn-outline-light btn-sm", text: "Logout" });
+  logoutBtn.addEventListener("click", logout);
+  const logoutLi = make("li", { class: "nav-item" });
+  logoutLi.appendChild(logoutBtn);
+
+  const rightLinks = make("ul", { class: "navbar-nav ms-auto align-items-center" });
+  append(rightLinks, usernameLi, logoutLi);
+
+  const collapse = make("div", { class: "collapse navbar-collapse", id: "mainNav" });
+  append(collapse, navLinks, rightLinks);
+
+  const container = make("div", { class: "container" });
+  append(container, brand, toggler, collapse);
+
+  const nav = make("nav", { class: "navbar navbar-expand-lg navbar-dark bg-success mb-4", id: "main-nav" });
+  nav.appendChild(container);
+
+  const alert = make("div", { class: "alert alert-warning d-none container", id: "api-alert" });
+  alert.role = "alert";
+
+  const main = make("main", { class: "container pb-5", id: "page-content" });
+
+  append(app, nav, alert, main);
 }
 
 // ─── UI helpers ────────────────────────────────────────────────────────────
 function showError(msg) {
   const el = document.getElementById("api-alert");
+  if (!el) return;
   el.textContent = msg;
   el.classList.remove("d-none");
 }
 
 function hideError() {
-  document.getElementById("api-alert").classList.add("d-none");
+  const el = document.getElementById("api-alert");
+  if (el) el.classList.add("d-none");
 }
 
 // Create a DOM element with common properties set via an options object
@@ -170,29 +232,19 @@ function registerPage(name, fn) {
 
 function navigate(page) {
   hideError();
-  const app = document.getElementById("app");
-  app.innerHTML = "";
-  if (pages[page]) pages[page](app);
+  const content = document.getElementById("page-content");
+  content.innerHTML = "";
+  if (pages[page]) pages[page](content);
   document.querySelectorAll(".navbar-nav .nav-link[data-page]").forEach(link => {
     link.classList.toggle("active", link.getAttribute("data-page") === page);
   });
 }
 
 // ─── Bootstrap ─────────────────────────────────────────────────────────────
-document.querySelectorAll(".navbar-nav .nav-link[data-page]").forEach(link => {
-  link.addEventListener("click", e => {
-    e.preventDefault();
-    navigate(link.getAttribute("data-page"));
-  });
-});
-
-document.getElementById("btn-logout").addEventListener("click", logout);
-
 document.addEventListener("DOMContentLoaded", () => {
   const user = getCurrentUser();
   if (user) {
-    document.getElementById("main-nav").style.display = "";
-    document.getElementById("nav-username").textContent = user.name;
+    renderShell(true, user);
     navigate("dashboard");
   } else {
     showLogin();
