@@ -1,5 +1,4 @@
-# GreenGrow Garden — data analysis / reporting queries (read-only SELECTs)
-# Run after database_creation_queries.sql and sample data (e.g. data_loading_queries.sql).
+# Run after database_creation_queries.sql and sample data (e.g. data_loading_queries.sql)
 
 use mis_330_group_project;
 
@@ -100,3 +99,15 @@ from inventorytransaction it
 join product p on it.productid = p.productid
 group by p.productid, p.productname
 order by transaction_count desc;
+
+# --- Average Order Value (AOV) by Customer ---
+select 
+    c.customerid, 
+    concat(c.firstname, ' ', c.lastname) as customer_name,
+    count(o.orderid) as total_orders,
+    sum(o.totalamount) as lifetime_value,
+    avg(o.totalamount) as average_order_value
+from customer c
+join orders o on c.customerid = o.customerid
+group by c.customerid, c.firstname, c.lastname
+order by average_order_value desc;
