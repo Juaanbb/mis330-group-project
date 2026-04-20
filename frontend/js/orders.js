@@ -1,60 +1,57 @@
-const ordersTemplate = `
-  <h1 class="h3 mb-4">Orders</h1>
-  <div class="row g-4">
-    <div class="col-lg-7">
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white fw-semibold">All orders</div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-striped mb-0">
-              <thead class="table-light">
-                <tr><th>ID</th><th>Customer ID</th><th>Date</th><th>Status</th><th>Total</th></tr>
-              </thead>
-              <tbody id="orders-body">
-                <tr><td colspan="5" class="text-muted text-center py-4">Loading…</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-5">
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white fw-semibold">Create order</div>
-        <div class="card-body">
-          <form id="form-order">
-            <div class="mb-3">
-              <label class="form-label" for="order-customer">Customer ID</label>
-              <input type="number" min="1" class="form-control" id="order-customer" name="customerId" required />
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="order-address">Shipping address</label>
-              <input type="text" class="form-control" id="order-address" name="address" placeholder="123 Main St" />
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="order-city">City</label>
-              <input type="text" class="form-control" id="order-city" name="city" />
-            </div>
-            <button type="submit" class="btn btn-success">Place order</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>`;
-
 registerPage("orders", function(app) {
-  app.innerHTML = ordersTemplate;
+  app.appendChild(make("h1", { class: "h3 mb-4", text: "Orders" }));
+
+  const row = make("div", { class: "row g-4" });
+  app.appendChild(row);
+
+  // ── Left: table ──────────────────────────────────────────────────────────
+  const leftCol = make("div", { class: "col-lg-7" });
+  row.appendChild(leftCol);
+
+  const searchInput = make("input", { type: "text", class: "form-control form-control-sm w-auto", placeholder: "Search…" });
+  const { card: tableCard, body: tableBody } = makeCard("All orders", searchInput);
+  tableBody.className = "card-body p-0";
+  leftCol.appendChild(tableCard);
+
+  const { wrapper, tbody } = makeTable(["ID", "Customer ID", "Date", "Status", "Total", "Actions"], "orders-body");
+  tableBody.appendChild(wrapper);
+  emptyRow(tbody, 6, "Loading…");
+
+  // ── Right: create order form ──────────────────────────────────────────────
+  const rightCol = make("div", { class: "col-lg-5" });
+  row.appendChild(rightCol);
+
+  const { card: formCard, body: formBody } = makeCard("Create order");
+  rightCol.appendChild(formCard);
+
+  const form       = make("form");
+  const customerIn = make("input", { type: "number", id: "order-customer", name: "customerId", required: true, min: "1" });
+  const addressIn  = make("input", { type: "text",   id: "order-address",  name: "address", placeholder: "123 Main St" });
+  const cityIn     = make("input", { type: "text",   id: "order-city",     name: "city" });
+  const submitBtn  = make("button", { class: "btn btn-success", text: "Place order" });
+  submitBtn.type   = "submit";
+
+  append(form, formGroup("Customer ID", customerIn), formGroup("Shipping address", addressIn), formGroup("City", cityIn), submitBtn);
+  formBody.appendChild(form);
+
+  // ── Events ───────────────────────────────────────────────────────────────
   loadOrders();
 
-  document.getElementById("form-order").addEventListener("submit", async function(e) {
+  searchInput.addEventListener("input", function() {
+    const q = this.value.toLowerCase();
+    tbody.querySelectorAll("tr").forEach(tr => {
+      tr.style.display = tr.textContent.toLowerCase().includes(q) ? "" : "none";
+    });
+  });
+
+  form.addEventListener("submit", async function(e) {
     e.preventDefault();
-    const form = e.target;
     try {
       hideError();
       await apiPost("/orders", {
-        customerId: parseInt(form.customerId.value, 10),
-        address:    form.address.value.trim() || null,
-        city:       form.city.value.trim() || null,
+        customerId: parseInt(customerIn.value, 10),
+        address:    addressIn.value.trim() || null,
+        city:       cityIn.value.trim() || null,
       });
       form.reset();
       await loadOrders();
@@ -66,19 +63,50 @@ registerPage("orders", function(app) {
 
 async function loadOrders() {
   const tbody = document.getElementById("orders-body");
+  if (!tbody) return;
+  tbody.innerHTML = "";
   try {
     const rows = asArray(await apiGet("/orders"));
-    if (!rows.length) { tbody.innerHTML = emptyRow(5, "No orders yet."); return; }
-    tbody.innerHTML = rows.map(r => `
-      <tr>
-        <td>${escapeHtml(r.id ?? r.orderId ?? "")}</td>
-        <td>${escapeHtml(r.customerId ?? "")}</td>
-        <td>${escapeHtml(r.orderDate ?? "")}</td>
-        <td>${escapeHtml(r.orderStatus ?? r.status ?? "")}</td>
-        <td>$${escapeHtml(r.totalAmount ?? r.total ?? "0.00")}</td>
-      </tr>`).join("");
+    if (!rows.length) { emptyRow(tbody, 6, "No orders yet."); return; }
+    rows.forEach(r => tbody.appendChild(buildOrderRow(r)));
   } catch (err) {
     showError("Could not load orders: " + err.message);
-    tbody.innerHTML = emptyRow(5, "Failed to load. Is the API running?");
+    emptyRow(tbody, 6, "Failed to load. Is the API running?");
   }
+}
+
+function buildOrderRow(r) {
+  const tr = make("tr");
+  [String(r.id ?? ""), String(r.customerId ?? ""), r.orderDate ?? "", r.orderStatus ?? "", "$" + (r.totalAmount ?? "0.00")].forEach(val => {
+    tr.appendChild(make("td", { text: val }));
+  });
+
+  const td = make("td");
+
+  // Status dropdown for quick update
+  const select = make("select", { class: "form-select form-select-sm d-inline-block w-auto me-1" });
+  ["Pending", "Shipped", "Completed", "Cancelled"].forEach(s => {
+    const opt = make("option", { text: s, value: s });
+    if (s === (r.orderStatus ?? "Pending")) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.addEventListener("change", async () => {
+    try {
+      hideError();
+      await apiPut("/orders/" + r.id, { orderStatus: select.value });
+      await loadOrders();
+    } catch (err) { showError("Update failed: " + err.message); }
+  });
+
+  const delBtn = make("button", { class: "btn btn-sm btn-outline-danger", text: "Delete" });
+  delBtn.type  = "button";
+  delBtn.addEventListener("click", async () => {
+    if (!confirm("Delete this order?")) return;
+    try { hideError(); await apiDelete("/orders/" + r.id); await loadOrders(); }
+    catch (err) { showError("Delete failed: " + err.message); }
+  });
+
+  append(td, select, delBtn);
+  tr.appendChild(td);
+  return tr;
 }

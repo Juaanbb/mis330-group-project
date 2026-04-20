@@ -1,0 +1,12 @@
+# Backend secrets
+backend/appsettings.json
+
+# .NET build output
+backend/bin/
+backend/obj/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

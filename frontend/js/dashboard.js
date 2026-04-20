@@ -1,61 +1,46 @@
-const dashboardTemplate = `
-  <h1 class="h3 mb-4">Dashboard</h1>
-  <div class="row g-3 mb-4">
-    <div class="col-sm-6 col-lg-3">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <div class="text-muted small">Customers</div>
-          <div class="fs-3 fw-semibold" id="dash-customers">—</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <div class="text-muted small">Products</div>
-          <div class="fs-3 fw-semibold" id="dash-products">—</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <div class="text-muted small">Orders</div>
-          <div class="fs-3 fw-semibold" id="dash-orders">—</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <div class="text-muted small">Low stock</div>
-          <div class="fs-3 fw-semibold" id="dash-low-stock">—</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white fw-semibold">Recent orders</div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead class="table-light">
-            <tr><th>ID</th><th>Customer ID</th><th>Date</th><th>Status</th></tr>
-          </thead>
-          <tbody id="dash-orders-body">
-            <tr><td colspan="4" class="text-muted text-center py-4">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>`;
-
 registerPage("dashboard", function(app) {
-  app.innerHTML = dashboardTemplate;
-  loadDashboard();
+  // Title
+  app.appendChild(make("h1", { class: "h3 mb-4", text: "Dashboard" }));
+
+  // Stat cards row
+  const statsRow = make("div", { class: "row g-3 mb-4" });
+  app.appendChild(statsRow);
+
+  const stats = [
+    { label: "Customers",  id: "dash-customers" },
+    { label: "Products",   id: "dash-products" },
+    { label: "Orders",     id: "dash-orders" },
+    { label: "Low stock",  id: "dash-low-stock" },
+  ];
+
+  stats.forEach(s => {
+    const col  = make("div", { class: "col-sm-6 col-lg-3" });
+    const card = make("div", { class: "card border-0 shadow-sm" });
+    const body = make("div", { class: "card-body" });
+    append(body,
+      make("div", { class: "text-muted small", text: s.label }),
+      make("div", { class: "fs-3 fw-semibold", id: s.id, text: "—" })
+    );
+    card.appendChild(body);
+    col.appendChild(card);
+    statsRow.appendChild(col);
+  });
+
+  // Recent orders card
+  const { card: ordersCard, body: ordersBody } = makeCard("Recent orders");
+  ordersBody.className = "card-body p-0";
+  app.appendChild(ordersCard);
+
+  const { wrapper, tbody } = makeTable(["ID", "Customer ID", "Date", "Status"], "dash-orders-body");
+  ordersBody.appendChild(wrapper);
+
+  emptyRow(tbody, 4, "Loading…");
+
+  // Load data
+  loadDashboard(tbody);
 });
 
-async function loadDashboard() {
+async function loadDashboard(tbody) {
   try {
     const [custRaw, prodRaw, ordRaw, invRaw] = await Promise.all([
       apiGet("/customers").catch(() => []),
@@ -84,16 +69,20 @@ async function loadDashboard() {
       .sort((a, b) => new Date(b.orderDate ?? 0) - new Date(a.orderDate ?? 0))
       .slice(0, 5);
 
-    const tbody = document.getElementById("dash-orders-body");
-    if (!recent.length) { tbody.innerHTML = emptyRow(4, "No orders yet."); return; }
+    // Use the tbody passed in, or look it up
+    const t = tbody || document.getElementById("dash-orders-body");
+    if (!t) return;
+    t.innerHTML = "";
 
-    tbody.innerHTML = recent.map(r => `
-      <tr>
-        <td>${escapeHtml(r.id ?? r.orderId ?? "")}</td>
-        <td>${escapeHtml(r.customerId ?? "")}</td>
-        <td>${escapeHtml(r.orderDate ?? "")}</td>
-        <td>${escapeHtml(r.orderStatus ?? r.status ?? "")}</td>
-      </tr>`).join("");
+    if (!recent.length) { emptyRow(t, 4, "No orders yet."); return; }
+
+    recent.forEach(r => {
+      const tr = make("tr");
+      [r.id ?? r.orderId ?? "", r.customerId ?? "", r.orderDate ?? "", r.orderStatus ?? r.status ?? ""].forEach(val => {
+        tr.appendChild(make("td", { text: String(val) }));
+      });
+      t.appendChild(tr);
+    });
   } catch (err) {
     showError("Dashboard error: " + err.message);
   }
