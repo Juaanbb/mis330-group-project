@@ -42,6 +42,7 @@ public class InventoryController : ControllerBase
         var transaction = new InventoryTransaction
         {
             ProductId       = req.ProductId,
+            EmployeeId      = req.EmployeeId,
             TransactionType = "RESTOCK",
             TransactionDate = DateTime.UtcNow,
             QuantityChange  = req.Quantity,
@@ -55,4 +56,4 @@ public class InventoryController : ControllerBase
     }
 }
 
-public record RestockRequest(int ProductId, int Quantity, string? Notes);
+public record RestockRequest(int ProductId, int EmployeeId, int Quantity, string? Notes);

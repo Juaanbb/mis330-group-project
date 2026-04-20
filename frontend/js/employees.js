@@ -30,7 +30,7 @@ registerPage("employees", function(app) {
   const editIdIn = make("input", { type: "hidden", id: "edit-employee-id" });
   const nameIn   = make("input", { type: "text",  id: "emp-name",  name: "name",  required: true });
   const emailIn  = make("input", { type: "email", id: "emp-email", name: "email", required: true });
-  const phoneIn  = make("input", { type: "text",  id: "emp-phone", name: "phone" });
+  const phoneIn  = make("input", { type: "text",  id: "emp-phone", name: "phone", required: true });
   const roleIn   = make("input", { type: "text",  id: "emp-role",  name: "role",  required: true, placeholder: "Manager, Clerk, Stock…" });
 
   const submitBtn = make("button", { class: "btn btn-success", text: "Add employee" });

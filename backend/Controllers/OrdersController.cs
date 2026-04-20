@@ -38,11 +38,14 @@ public class OrdersController : ControllerBase
         var order = new Order
         {
             CustomerId  = req.CustomerId,
+            EmployeeId  = req.EmployeeId,
             OrderDate   = DateTime.UtcNow,
             OrderStatus = "Pending",
             TotalAmount = 0,
-            Address     = req.Address,
-            City        = req.City
+            Address     = req.Address ?? "",
+            City        = req.City ?? "",
+            State       = req.State ?? "",
+            ZipCode     = req.Zipcode ?? ""
         };
 
         _db.Orders.Add(order);
@@ -77,5 +80,5 @@ public class OrdersController : ControllerBase
     }
 }
 
-public record CreateOrderRequest(int CustomerId, string? Address, string? City);
+public record CreateOrderRequest(int CustomerId, int? EmployeeId, string? Address, string? City, string? State, string? Zipcode);
 public record UpdateOrderRequest(string? OrderStatus);

@@ -23,14 +23,15 @@ registerPage("inventory", function(app) {
   const { card: formCard, body: formBody } = makeCard("Add stock");
   rightCol.appendChild(formCard);
 
-  const form      = make("form");
-  const productIn = make("input", { type: "number", id: "restock-product", name: "productId", required: true, min: "1" });
-  const qtyIn     = make("input", { type: "number", id: "restock-qty",     name: "quantity",  required: true, min: "1" });
-  const notesIn   = make("input", { type: "text",   id: "restock-notes",   name: "notes",     placeholder: "Optional note" });
-  const submitBtn = make("button", { class: "btn btn-success", text: "Add stock" });
-  submitBtn.type  = "submit";
+  const form        = make("form");
+  const productIn   = make("input", { type: "number", id: "restock-product",   name: "productId",  required: true, min: "1" });
+  const employeeIn  = make("input", { type: "number", id: "restock-employee",  name: "employeeId", required: true, min: "1" });
+  const qtyIn       = make("input", { type: "number", id: "restock-qty",       name: "quantity",   required: true, min: "1" });
+  const notesIn     = make("input", { type: "text",   id: "restock-notes",     name: "notes",      placeholder: "Optional note" });
+  const submitBtn   = make("button", { class: "btn btn-success", text: "Add stock" });
+  submitBtn.type    = "submit";
 
-  append(form, formGroup("Product ID", productIn), formGroup("Quantity to add", qtyIn), formGroup("Notes", notesIn), submitBtn);
+  append(form, formGroup("Product ID", productIn), formGroup("Employee ID", employeeIn), formGroup("Quantity to add", qtyIn), formGroup("Notes", notesIn), submitBtn);
   formBody.appendChild(form);
 
   // ── Events ───────────────────────────────────────────────────────────────
@@ -41,9 +42,10 @@ registerPage("inventory", function(app) {
     try {
       hideError();
       await apiPost("/inventory/restock", {
-        productId: parseInt(productIn.value, 10),
-        quantity:  parseInt(qtyIn.value, 10),
-        notes:     notesIn.value.trim() || null,
+        productId:  parseInt(productIn.value, 10),
+        employeeId: parseInt(employeeIn.value, 10),
+        quantity:   parseInt(qtyIn.value, 10),
+        notes:      notesIn.value.trim() || null,
       });
       form.reset();
       await loadInventory();

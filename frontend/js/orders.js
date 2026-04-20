@@ -24,14 +24,25 @@ registerPage("orders", function(app) {
   const { card: formCard, body: formBody } = makeCard("Create order");
   rightCol.appendChild(formCard);
 
-  const form       = make("form");
-  const customerIn = make("input", { type: "number", id: "order-customer", name: "customerId", required: true, min: "1" });
-  const addressIn  = make("input", { type: "text",   id: "order-address",  name: "address", placeholder: "123 Main St" });
-  const cityIn     = make("input", { type: "text",   id: "order-city",     name: "city" });
-  const submitBtn  = make("button", { class: "btn btn-success", text: "Place order" });
-  submitBtn.type   = "submit";
+  const form        = make("form");
+  const customerIn  = make("input", { type: "number", id: "order-customer",  name: "customerId",  required: true, min: "1" });
+  const employeeIn  = make("input", { type: "number", id: "order-employee",  name: "employeeId",  required: true, min: "1" });
+  const addressIn   = make("input", { type: "text",   id: "order-address",   name: "address",     required: true, placeholder: "123 Main St" });
+  const cityIn      = make("input", { type: "text",   id: "order-city",      name: "city",        required: true });
+  const stateIn     = make("input", { type: "text",   id: "order-state",     name: "state",       required: true, placeholder: "TX" });
+  const zipcodeIn   = make("input", { type: "text",   id: "order-zipcode",   name: "zipcode",     required: true, placeholder: "78701" });
+  const submitBtn   = make("button", { class: "btn btn-success", text: "Place order" });
+  submitBtn.type    = "submit";
 
-  append(form, formGroup("Customer ID", customerIn), formGroup("Shipping address", addressIn), formGroup("City", cityIn), submitBtn);
+  append(form,
+    formGroup("Customer ID", customerIn),
+    formGroup("Employee ID", employeeIn),
+    formGroup("Shipping address", addressIn),
+    formGroup("City", cityIn),
+    formGroup("State", stateIn),
+    formGroup("ZIP code", zipcodeIn),
+    submitBtn
+  );
   formBody.appendChild(form);
 
   // ── Events ───────────────────────────────────────────────────────────────
@@ -49,9 +60,12 @@ registerPage("orders", function(app) {
     try {
       hideError();
       await apiPost("/orders", {
-        customerId: parseInt(customerIn.value, 10),
-        address:    addressIn.value.trim() || null,
-        city:       cityIn.value.trim() || null,
+        customerId:  parseInt(customerIn.value, 10),
+        employeeId:  parseInt(employeeIn.value, 10),
+        address:     addressIn.value.trim(),
+        city:        cityIn.value.trim(),
+        state:       stateIn.value.trim(),
+        zipcode:     zipcodeIn.value.trim(),
       });
       form.reset();
       await loadOrders();

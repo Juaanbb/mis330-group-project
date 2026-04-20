@@ -42,7 +42,7 @@ public class EmployeesController : ControllerBase
             FirstName   = parts[0],
             LastName    = parts.Length > 1 ? parts[1] : "",
             Email       = req.Email ?? "",
-            PhoneNumber = string.IsNullOrWhiteSpace(req.Phone) ? null : req.Phone,
+            PhoneNumber = req.Phone ?? "",
             Role        = req.Role ?? "",
             HireDate    = DateTime.UtcNow,
             IsActive    = true
@@ -65,7 +65,7 @@ public class EmployeesController : ControllerBase
         employee.FirstName   = parts[0];
         employee.LastName    = parts.Length > 1 ? parts[1] : "";
         employee.Email       = req.Email ?? employee.Email;
-        employee.PhoneNumber = string.IsNullOrWhiteSpace(req.Phone) ? null : req.Phone;
+        employee.PhoneNumber = req.Phone ?? employee.PhoneNumber ?? "";
         employee.Role        = req.Role ?? employee.Role;
 
         await _db.SaveChangesAsync();

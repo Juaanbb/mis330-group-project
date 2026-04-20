@@ -28,9 +28,10 @@ registerPage("products", async function(app) {
 
   const form     = make("form");
   const editIdIn = make("input", { type: "hidden", id: "edit-product-id" });
-  const nameIn   = make("input", { type: "text",   id: "prod-name",  name: "name",     required: true });
-  const priceIn  = make("input", { type: "number", id: "prod-price", name: "price",    required: true, step: "0.01", min: "0" });
-  const qtyIn    = make("input", { type: "number", id: "prod-qty",   name: "quantity", required: true, min: "0", value: "0" });
+  const nameIn   = make("input", { type: "text",   id: "prod-name",  name: "name",        required: true });
+  const descIn   = make("textarea", { id: "prod-desc", name: "description", required: true, rows: "2", placeholder: "Short product description" });
+  const priceIn  = make("input", { type: "number", id: "prod-price", name: "price",       required: true, step: "0.01", min: "0" });
+  const qtyIn    = make("input", { type: "number", id: "prod-qty",   name: "quantity",    required: true, min: "0", value: "0" });
 
   // Category dropdown — populated from the categories table
   const categorySelect = make("select", { id: "prod-category", name: "categoryId", required: true });
@@ -62,7 +63,7 @@ registerPage("products", async function(app) {
 
   const btnRow = make("div", { class: "d-flex gap-2" });
   append(btnRow, submitBtn, cancelBtn);
-  append(form, editIdIn, formGroup("Name", nameIn), categoryGroup, formGroup("Price ($)", priceIn), formGroup("Stock qty", qtyIn), btnRow);
+  append(form, editIdIn, formGroup("Name", nameIn), formGroup("Description", descIn), categoryGroup, formGroup("Price ($)", priceIn), formGroup("Stock qty", qtyIn), btnRow);
   formBody.appendChild(form);
 
   // ── Events ───────────────────────────────────────────────────────────────
@@ -79,7 +80,7 @@ registerPage("products", async function(app) {
     e.preventDefault();
     const editId = editIdIn.value;
     const catId  = categorySelect.value ? parseInt(categorySelect.value, 10) : null;
-    const body   = { name: nameIn.value.trim(), price: parseFloat(priceIn.value), quantity: parseInt(qtyIn.value, 10), categoryId: catId };
+    const body   = { name: nameIn.value.trim(), description: descIn.value.trim(), price: parseFloat(priceIn.value), quantity: parseInt(qtyIn.value, 10), categoryId: catId };
     try {
       hideError();
       editId ? await apiPut("/products/" + editId, body) : await apiPost("/products", body);
@@ -132,6 +133,7 @@ function buildProductRow(r) {
   editBtn.addEventListener("click", () => {
     document.getElementById("edit-product-id").value = r.id;
     document.getElementById("prod-name").value        = r.name ?? "";
+    document.getElementById("prod-desc").value        = r.description ?? "";
     document.getElementById("prod-price").value       = r.price ?? "";
     document.getElementById("prod-qty").value         = r.quantity ?? 0;
 

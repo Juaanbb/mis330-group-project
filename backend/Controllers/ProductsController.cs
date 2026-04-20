@@ -22,12 +22,13 @@ public class ProductsController : ControllerBase
             from c in catGroup.DefaultIfEmpty()
             select new
             {
-                id         = p.ProductId,
-                name       = p.ProductName,
-                category   = c != null ? c.CategoryName : "",
-                categoryId = p.CategoryId,
-                price      = p.Price,
-                quantity   = p.QuantityOnHand
+                id          = p.ProductId,
+                name        = p.ProductName,
+                description = p.ProductDescription ?? "",
+                category    = c != null ? c.CategoryName : "",
+                categoryId  = p.CategoryId,
+                price       = p.Price,
+                quantity    = p.QuantityOnHand
             }
         ).ToListAsync();
 
@@ -40,12 +41,14 @@ public class ProductsController : ControllerBase
     {
         var product = new Product
         {
-            ProductName    = req.Name ?? "",
-            Price          = req.Price,
-            QuantityOnHand = req.Quantity,
-            CategoryId     = req.CategoryId,
-            ReorderLevel   = 5,
-            IsActive       = true
+            ProductName        = req.Name ?? "",
+            ProductDescription = req.Description ?? "",
+            Sku                = Guid.NewGuid().ToString("N")[..8].ToUpper(),
+            Price              = req.Price,
+            QuantityOnHand     = req.Quantity,
+            CategoryId         = req.CategoryId,
+            ReorderLevel       = 5,
+            IsActive           = true
         };
 
         _db.Products.Add(product);
@@ -61,10 +64,11 @@ public class ProductsController : ControllerBase
         var product = await _db.Products.FindAsync(id);
         if (product == null) return NotFound();
 
-        product.ProductName    = req.Name ?? product.ProductName;
-        product.Price          = req.Price;
-        product.QuantityOnHand = req.Quantity;
-        product.CategoryId     = req.CategoryId;
+        product.ProductName        = req.Name ?? product.ProductName;
+        product.ProductDescription = req.Description ?? product.ProductDescription ?? "";
+        product.Price              = req.Price;
+        product.QuantityOnHand     = req.Quantity;
+        product.CategoryId         = req.CategoryId;
 
         await _db.SaveChangesAsync();
         return Ok(new { id = product.ProductId });
@@ -83,4 +87,4 @@ public class ProductsController : ControllerBase
     }
 }
 
-public record SaveProductRequest(string? Name, decimal Price, int Quantity, int? CategoryId);
+public record SaveProductRequest(string? Name, string? Description, decimal Price, int Quantity, int? CategoryId);
