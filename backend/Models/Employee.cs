@@ -30,4 +30,7 @@ public class Employee
 
     [Column("isactive")]
     public bool IsActive { get; set; }
+
+    [Column("password")]
+    public string Password { get; set; } = "";
 }

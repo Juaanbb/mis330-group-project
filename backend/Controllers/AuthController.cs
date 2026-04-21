@@ -12,7 +12,7 @@ public class AuthController : ControllerBase
     private readonly AppDbContext _db;
     public AuthController(AppDbContext db) => _db = db;
 
-    // POST /auth/login
+    // POST /auth/login — customer login only
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
@@ -26,11 +26,12 @@ public class AuthController : ControllerBase
         {
             id    = customer.CustomerId,
             name  = customer.FirstName + " " + customer.LastName,
-            email = customer.Email
+            email = customer.Email,
+            type  = "customer"
         });
     }
 
-    // POST /auth/register
+    // POST /auth/register — customer registration
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
     {
@@ -55,7 +56,41 @@ public class AuthController : ControllerBase
         {
             id    = customer.CustomerId,
             name  = customer.FirstName + " " + customer.LastName,
-            email = customer.Email
+            email = customer.Email,
+            type  = "customer"
+        });
+    }
+
+    // POST /auth/employee-login — employee and admin login only
+    [HttpPost("employee-login")]
+    public async Task<IActionResult> EmployeeLogin([FromBody] LoginRequest req)
+    {
+        // Hardcoded admin account for testing
+        if (req.Email == "admin" && req.Password == "password")
+        {
+            return Ok(new
+            {
+                id    = 0,
+                name  = "Admin",
+                email = "admin",
+                role  = "Manager",
+                type  = "employee"
+            });
+        }
+
+        var employee = await _db.Employees
+            .FirstOrDefaultAsync(e => e.Email == req.Email && e.Password == req.Password && e.IsActive);
+
+        if (employee == null)
+            return Unauthorized("Invalid employee credentials.");
+
+        return Ok(new
+        {
+            id    = employee.EmployeeId,
+            name  = employee.FirstName + " " + employee.LastName,
+            email = employee.Email,
+            role  = employee.Role,
+            type  = "employee"
         });
     }
 }

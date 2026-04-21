@@ -44,6 +44,7 @@ public class EmployeesController : ControllerBase
             Email       = req.Email ?? "",
             PhoneNumber = req.Phone ?? "",
             Role        = req.Role ?? "",
+            Password    = req.Password ?? "",
             HireDate    = DateTime.UtcNow,
             IsActive    = true
         };
@@ -68,6 +69,9 @@ public class EmployeesController : ControllerBase
         employee.PhoneNumber = req.Phone ?? employee.PhoneNumber ?? "";
         employee.Role        = req.Role ?? employee.Role;
 
+        if (!string.IsNullOrWhiteSpace(req.Password))
+            employee.Password = req.Password;
+
         await _db.SaveChangesAsync();
         return Ok(new { id = employee.EmployeeId });
     }
@@ -85,4 +89,4 @@ public class EmployeesController : ControllerBase
     }
 }
 
-public record SaveEmployeeRequest(string? Name, string? Email, string? Phone, string? Role);
+public record SaveEmployeeRequest(string? Name, string? Email, string? Phone, string? Role, string? Password);

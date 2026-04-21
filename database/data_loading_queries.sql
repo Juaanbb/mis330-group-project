@@ -17,12 +17,12 @@ insert into customer (firstname, lastname, email, phonenumber, password, created
 ('Luis', 'Hernandez', 'luis@email.com', '2057778888', '123', '2026-04-05');
 
 -- EMPLOYEE
-insert into employee (firstname, lastname, email, phonenumber, role, hiredate, isactive) values
-('John', 'Smith', 'john@email.com', '2051112222', 'Manager', '2025-01-01', true),
-('Sara', 'Lee', 'sara@email.com', '2053334444', 'Clerk', '2025-06-01', true),
-('Mike', 'Brown', 'mike@email.com', '2059990000', 'Stock', '2025-03-15', true),
-('Emma', 'Davis', 'emma@email.com', '2052223333', 'Clerk', '2025-07-10', true),
-('Noah', 'Wilson', 'noah@email.com', '2054445555', 'Manager', '2024-11-20', true);
+insert into employee (firstname, lastname, email, phonenumber, role, hiredate, isactive, password) values
+('John', 'Smith', 'john@email.com', '2051112222', 'Manager', '2025-01-01', true, '123'),
+('Sara', 'Lee', 'sara@email.com', '2053334444', 'Sales Associate', '2025-06-01', true, '123'),
+('Mike', 'Brown', 'mike@email.com', '2059990000', 'Stock Associate', '2025-03-15', true, '123'),
+('Emma', 'Davis', 'emma@email.com', '2052223333', 'Cashier', '2025-07-10', true, '123'),
+('Noah', 'Wilson', 'noah@email.com', '2054445555', 'Manager', '2024-11-20', true, '123');
 
 -- PRODUCT
 insert into product (productname, productdescription, price, sku, quantityonhand, reorderlevel, isactive, categoryid) values

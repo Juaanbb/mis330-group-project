@@ -69,6 +69,20 @@ function clearCurrentUser() {
   localStorage.removeItem("currentUser");
 }
 
+function isManager() {
+  const u = getCurrentUser();
+  return u && u.type === "employee" && u.role === "Manager";
+}
+
+function isEmployee() {
+  return getCurrentUser()?.type === "employee";
+}
+
+function isCustomer() {
+  const u = getCurrentUser();
+  return u && (u.type === "customer" || !u.type);
+}
+
 function logout() {
   clearCurrentUser();
   renderShell(false);
@@ -89,9 +103,46 @@ function makeNavLink(page, label) {
 function renderShell(loggedIn, user) {
   const app = document.getElementById("app");
   app.innerHTML = "";
-
   if (!loggedIn) return;
 
+  if (user && user.type === "customer") {
+    renderCustomerShell(app, user);
+  } else {
+    renderAdminShell(app, user);
+  }
+}
+
+function renderCustomerShell(app, user) {
+  const brand = make("a", { class: "navbar-brand fw-semibold", text: "GreenGrow Garden" });
+  brand.href = "#";
+  brand.addEventListener("click", e => { e.preventDefault(); navigate("storefront"); });
+
+  const usernameSpan = make("span", { class: "navbar-text text-white small me-3", text: "Hi, " + (user?.name || "") });
+  const logoutBtn = make("button", { class: "btn btn-outline-light btn-sm", text: "Logout" });
+  logoutBtn.addEventListener("click", logout);
+
+  const rightLinks = make("ul", { class: "navbar-nav ms-auto align-items-center" });
+  const userLi = make("li", { class: "nav-item" });
+  userLi.appendChild(usernameSpan);
+  const logoutLi = make("li", { class: "nav-item" });
+  logoutLi.appendChild(logoutBtn);
+  append(rightLinks, userLi, logoutLi);
+
+  const container = make("div", { class: "container" });
+  append(container, brand, rightLinks);
+
+  const nav = make("nav", { class: "navbar navbar-expand-lg navbar-dark bg-success mb-4" });
+  nav.appendChild(container);
+
+  const alert = make("div", { class: "alert alert-warning d-none container", id: "api-alert" });
+  alert.role = "alert";
+
+  const main = make("main", { class: "container pb-5", id: "page-content" });
+
+  append(app, nav, alert, main);
+}
+
+function renderAdminShell(app, user) {
   const brand = make("a", { class: "navbar-brand fw-semibold", text: "GreenGrow Garden" });
   brand.href = "#";
 
@@ -101,12 +152,17 @@ function renderShell(loggedIn, user) {
   toggler.setAttribute("data-bs-target", "#mainNav");
   toggler.appendChild(togglerIcon);
 
-  const navLinks = make("ul", { class: "navbar-nav me-auto" });
-  [["dashboard","Dashboard"],["customers","Customers"],["products","Products"],
-   ["orders","Orders"],["inventory","Inventory"],["employees","Employees"],["reports","Reports"]]
-    .forEach(([page, label]) => navLinks.appendChild(makeNavLink(page, label)));
+  const adminPages = [
+    ["dashboard","Dashboard"],["customers","Customers"],["products","Products"],
+    ["orders","Orders"],["inventory","Inventory"],["reports","Reports"]
+  ];
+  if (isManager()) adminPages.push(["employees","Employees"]);
 
-  const usernameSpan = make("span", { class: "navbar-text text-white small", id: "nav-username", text: user ? user.name : "" });
+  const navLinks = make("ul", { class: "navbar-nav me-auto" });
+  adminPages.forEach(([page, label]) => navLinks.appendChild(makeNavLink(page, label)));
+
+  const roleLabel = user ? user.name + (user.role ? " (" + user.role + ")" : "") : "";
+  const usernameSpan = make("span", { class: "navbar-text text-white small", id: "nav-username", text: roleLabel });
   const usernameLi = make("li", { class: "nav-item me-2" });
   usernameLi.appendChild(usernameSpan);
 
@@ -148,7 +204,6 @@ function hideError() {
   if (el) el.classList.add("d-none");
 }
 
-// Create a DOM element with common properties set via an options object
 function make(tag, opts = {}) {
   const el = document.createElement(tag);
   if (opts.class)       el.className     = opts.class;
@@ -170,13 +225,11 @@ function make(tag, opts = {}) {
   return el;
 }
 
-// Append multiple children to a parent in one call
 function append(parent, ...children) {
   children.forEach(c => parent.appendChild(c));
   return parent;
 }
 
-// Build a Bootstrap form-group: label + any input element
 function formGroup(labelText, input) {
   input.classList.add("form-control");
   const group = make("div", { class: "mb-3" });
@@ -185,7 +238,14 @@ function formGroup(labelText, input) {
   return group;
 }
 
-// Build a Bootstrap card with a header
+function selectGroup(labelText, select) {
+  select.classList.add("form-select");
+  const group = make("div", { class: "mb-3" });
+  const label = make("label", { class: "form-label", for: select.id, text: labelText });
+  append(group, label, select);
+  return group;
+}
+
 function makeCard(headerText, headerExtra) {
   const card = make("div", { class: "card border-0 shadow-sm" });
   const header = make("div", { class: "card-header bg-white" });
@@ -201,7 +261,6 @@ function makeCard(headerText, headerExtra) {
   return { card, header, body };
 }
 
-// Build a striped Bootstrap table with a thead and an empty tbody
 function makeTable(columns, tbodyId) {
   const wrapper = make("div", { class: "table-responsive" });
   const table   = make("table", { class: "table table-striped mb-0" });
@@ -215,7 +274,6 @@ function makeTable(columns, tbodyId) {
   return { wrapper, table, tbody };
 }
 
-// Build an empty-state row spanning all columns
 function emptyRow(tbody, colspan, msg) {
   const tr = make("tr");
   const td = make("td", { class: "text-muted text-center py-4", colspan, text: msg });
@@ -245,7 +303,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const user = getCurrentUser();
   if (user) {
     renderShell(true, user);
-    navigate("dashboard");
+    if (user.type === "customer") {
+      navigate("storefront");
+    } else {
+      navigate("dashboard");
+    }
   } else {
     showLogin();
   }

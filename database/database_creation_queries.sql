@@ -25,7 +25,8 @@ create table employee (
     phonenumber varchar(20) not null,
     role varchar(50) not null,
     hiredate date not null,
-    isactive bool not null
+    isactive bool not null,
+    password varchar(255) not null default ''
 );
 
 create table orders (
@@ -40,7 +41,7 @@ create table orders (
     zipcode varchar(10) not null,
     customerid int not null,
     -- added employeeid so we can see which employees handled which orders
-    employeeid int not null,
+    employeeid int,
 
     constraint fk_customerid foreign key (customerid) references customer(customerid),
 	constraint fk_employeeid foreign key (employeeid) references employee(employeeid)
