@@ -17,7 +17,7 @@ public class OrdersController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var orders = await _db.Orders
-            .OrderByDescending(o => o.OrderDate)
+            .OrderBy(o => o.OrderId)
             .Select(o => new
             {
                 id          = o.OrderId,
@@ -75,14 +75,20 @@ public class OrdersController : ControllerBase
         return Created($"/orders/{order.OrderId}", new { id = order.OrderId });
     }
 
-    // PUT /orders/{id} — update status
+    // PUT /orders/{id}
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateOrderRequest req)
     {
         var order = await _db.Orders.FindAsync(id);
         if (order == null) return NotFound();
 
-        order.OrderStatus = req.OrderStatus ?? order.OrderStatus;
+        if (req.OrderStatus != null)  order.OrderStatus = req.OrderStatus;
+        if (req.CustomerId.HasValue)  order.CustomerId  = req.CustomerId.Value;
+        if (req.EmployeeId.HasValue)  order.EmployeeId  = req.EmployeeId.Value == 0 ? null : req.EmployeeId.Value;
+        if (req.Address  != null)     order.Address     = req.Address;
+        if (req.City     != null)     order.City        = req.City;
+        if (req.State    != null)     order.State       = req.State;
+        if (req.Zipcode  != null)     order.ZipCode     = req.Zipcode;
 
         await _db.SaveChangesAsync();
         return Ok(new { id = order.OrderId });
@@ -103,4 +109,4 @@ public class OrdersController : ControllerBase
 
 public record OrderItemRequest(int ProductId, int Quantity, decimal UnitPrice);
 public record CreateOrderRequest(int CustomerId, int? EmployeeId, string? Address, string? City, string? State, string? Zipcode, List<OrderItemRequest>? Items);
-public record UpdateOrderRequest(string? OrderStatus);
+public record UpdateOrderRequest(string? OrderStatus, int? CustomerId, int? EmployeeId, string? Address, string? City, string? State, string? Zipcode);

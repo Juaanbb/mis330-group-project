@@ -1,4 +1,7 @@
+let _allInventory = [];
+
 registerPage("inventory", function(app) {
+  _allInventory = [];
   app.appendChild(make("h1", { class: "h3 mb-4", text: "Inventory" }));
 
   const row = make("div", { class: "row g-4" });
@@ -8,16 +11,24 @@ registerPage("inventory", function(app) {
   const leftCol = make("div", { class: "col-lg-7" });
   row.appendChild(leftCol);
 
-  const filterBar = make("div", { class: "d-flex gap-2 mb-2 align-items-center" });
-  const searchInput  = make("input", { type: "text", class: "form-control form-control-sm", placeholder: "Search…" });
-  const statusFilter = make("select", { class: "form-select form-select-sm w-auto" });
-  [["", "All Items"], ["low", "Low Stock"], ["ok", "OK"]]
-    .forEach(([val, text]) => {
-      const opt = make("option", { text, value: val });
-      if (!val) opt.selected = true;
-      statusFilter.appendChild(opt);
-    });
-  append(filterBar, searchInput, statusFilter);
+  const filterBar   = make("div", { class: "d-flex gap-2 mb-2 flex-wrap" });
+  const searchInput = make("input", { type: "text", class: "form-control form-control-sm", placeholder: "Search…" });
+  searchInput.style.width = "150px";
+
+  const stockFilter = make("select", { class: "form-select form-select-sm w-auto" });
+  [["", "All Items"], ["low", "Low Stock"], ["ok", "OK"]].forEach(([val, text]) => {
+    const o = make("option", { text }); o.value = val; stockFilter.appendChild(o);
+  });
+
+  const sortSelect = make("select", { class: "form-select form-select-sm w-auto" });
+  [
+    ["name-asc",  "Name: A → Z"],
+    ["name-desc", "Name: Z → A"],
+    ["qty-asc",   "Qty: Low → High"],
+    ["qty-desc",  "Qty: High → Low"],
+  ].forEach(([val, text]) => { const o = make("option", { text }); o.value = val; sortSelect.appendChild(o); });
+
+  append(filterBar, searchInput, stockFilter, sortSelect);
   leftCol.appendChild(filterBar);
 
   const { card: tableCard, body: tableBody } = makeCard("Stock Levels");
@@ -36,12 +47,12 @@ registerPage("inventory", function(app) {
     const { card: formCard, body: formBody } = makeCard("Add Stock");
     rightCol.appendChild(formCard);
 
-    const form       = make("form");
-    const productIn  = make("input", { type: "number", id: "restock-product",  required: true, min: "1" });
-    const qtyIn      = make("input", { type: "number", id: "restock-qty",      required: true, min: "1" });
-    const notesIn    = make("input", { type: "text",   id: "restock-notes",    placeholder: "Optional note" });
-    const submitBtn  = make("button", { class: "btn btn-success", text: "Add Stock" });
-    submitBtn.type   = "submit";
+    const form      = make("form");
+    const productIn = make("input", { type: "number", id: "restock-product", required: true, min: "1" });
+    const qtyIn     = make("input", { type: "number", id: "restock-qty",     required: true, min: "1" });
+    const notesIn   = make("input", { type: "text",   id: "restock-notes",   placeholder: "Optional note" });
+    const submitBtn = make("button", { class: "btn btn-success", text: "Add Stock" });
+    submitBtn.type  = "submit";
 
     append(form, formGroup("Product ID", productIn), formGroup("Quantity to Add", qtyIn), formGroup("Notes", notesIn), submitBtn);
     formBody.appendChild(form);
@@ -65,22 +76,37 @@ registerPage("inventory", function(app) {
     });
   }
 
-  // ── Events ───────────────────────────────────────────────────────────────
   loadInventory();
 
   function applyInvFilter() {
-    const q      = searchInput.value.toLowerCase();
-    const status = statusFilter.value;
-    tbody.querySelectorAll("tr").forEach(tr => {
-      const matchQ = !q || tr.textContent.toLowerCase().includes(q);
-      const isLow  = tr.className.includes("table-warning");
-      const matchS = !status || (status === "low" && isLow) || (status === "ok" && !isLow);
-      tr.style.display = (matchQ && matchS) ? "" : "none";
+    const q     = searchInput.value.toLowerCase();
+    const stock = stockFilter.value;
+    const sort  = sortSelect.value;
+
+    let rows = _allInventory.filter(r => {
+      const qty     = Number(r.quantity ?? r.quantityOnHand ?? 0);
+      const reorder = Number(r.reorderLevel ?? r.reorderAt ?? 0);
+      const isLow   = reorder > 0 && qty <= reorder;
+      const matchQ  = !q || (r.name || "").toLowerCase().includes(q);
+      const matchS  = !stock || (stock === "low" && isLow) || (stock === "ok" && !isLow);
+      return matchQ && matchS;
     });
+
+    if (sort === "name-asc")  rows = [...rows].sort((a,b) => (a.name||"").localeCompare(b.name||""));
+    if (sort === "name-desc") rows = [...rows].sort((a,b) => (b.name||"").localeCompare(a.name||""));
+    if (sort === "qty-asc")   rows = [...rows].sort((a,b) => Number(a.quantity ?? 0) - Number(b.quantity ?? 0));
+    if (sort === "qty-desc")  rows = [...rows].sort((a,b) => Number(b.quantity ?? 0) - Number(a.quantity ?? 0));
+
+    const tbody = document.getElementById("inventory-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (!rows.length) { emptyRow(tbody, 5, "No items match."); return; }
+    rows.forEach(r => tbody.appendChild(buildInventoryRow(r)));
   }
 
   searchInput.addEventListener("input", applyInvFilter);
-  statusFilter.addEventListener("change", applyInvFilter);
+  stockFilter.addEventListener("change", applyInvFilter);
+  sortSelect.addEventListener("change", applyInvFilter);
 });
 
 async function loadInventory() {
@@ -88,9 +114,9 @@ async function loadInventory() {
   if (!tbody) return;
   tbody.innerHTML = "";
   try {
-    const rows = asArray(await apiGet("/inventory"));
-    if (!rows.length) { emptyRow(tbody, 5, "No inventory data."); return; }
-    rows.forEach(r => tbody.appendChild(buildInventoryRow(r)));
+    _allInventory = asArray(await apiGet("/inventory"));
+    if (!_allInventory.length) { emptyRow(tbody, 5, "No inventory data."); return; }
+    _allInventory.forEach(r => tbody.appendChild(buildInventoryRow(r)));
   } catch (err) {
     showError("Could not load inventory: " + err.message);
     emptyRow(tbody, 5, "Failed to load. Is the API running?");
@@ -109,8 +135,8 @@ function buildInventoryRow(r) {
     tr.appendChild(make("td", { text: val }));
   });
 
-  const badgeTd  = make("td");
-  const badge    = make("span", { text: isLow ? "Low Stock" : "OK" });
+  const badgeTd = make("td");
+  const badge   = make("span", { text: isLow ? "Low Stock" : "OK" });
   badge.className = isLow ? "badge bg-danger" : "badge bg-success";
   badgeTd.appendChild(badge);
   tr.appendChild(badgeTd);

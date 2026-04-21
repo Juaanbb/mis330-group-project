@@ -1,4 +1,8 @@
+let _allProducts = [];
+let _allCategories = [];
+
 registerPage("products", async function(app) {
+  _allProducts = [];
   app.appendChild(make("h1", { class: "h3 mb-4", text: "Products" }));
 
   const row = make("div", { class: "row g-4" });
@@ -8,12 +12,24 @@ registerPage("products", async function(app) {
   const leftCol = make("div", { class: "col-lg-7" });
   row.appendChild(leftCol);
 
-  // Filter row above table
-  const filterBar = make("div", { class: "d-flex gap-2 mb-2 align-items-center" });
-  const searchInput  = make("input", { type: "text", class: "form-control form-control-sm", placeholder: "Search…", id: "prod-search" });
-  const catFilter    = make("select", { class: "form-select form-select-sm w-auto", id: "prod-cat-filter" });
-  catFilter.appendChild(make("option", { text: "All Categories", value: "" }));
-  append(filterBar, searchInput, catFilter);
+  const filterBar  = make("div", { class: "d-flex gap-2 mb-2 flex-wrap" });
+  const searchInput = make("input", { type: "text", class: "form-control form-control-sm", placeholder: "Search…" });
+  searchInput.style.width = "140px";
+
+  const catFilter = make("select", { class: "form-select form-select-sm w-auto", id: "prod-cat-filter" });
+  catFilter.appendChild(make("option", { text: "All Categories" }));
+
+  const sortSelect = make("select", { class: "form-select form-select-sm w-auto" });
+  [
+    ["name-asc",   "Name: A → Z"],
+    ["name-desc",  "Name: Z → A"],
+    ["price-asc",  "Price: Low → High"],
+    ["price-desc", "Price: High → Low"],
+    ["stock-asc",  "Stock: Low → High"],
+    ["stock-desc", "Stock: High → Low"],
+  ].forEach(([val, text]) => { const o = make("option", { text }); o.value = val; sortSelect.appendChild(o); });
+
+  append(filterBar, searchInput, catFilter, sortSelect);
   leftCol.appendChild(filterBar);
 
   const { card: tableCard, body: tableBody } = makeCard("Catalog");
@@ -23,9 +39,6 @@ registerPage("products", async function(app) {
   const { wrapper, tbody } = makeTable(["ID", "Name", "Category", "Price", "Stock", "Actions"], "products-body");
   tableBody.appendChild(wrapper);
   emptyRow(tbody, 6, "Loading…");
-
-  let allProducts = [];
-  let allCategories = [];
 
   // ── Right: form (managers only) ──────────────────────────────────────────
   let categorySelect;
@@ -47,7 +60,9 @@ registerPage("products", async function(app) {
     const qtyIn    = make("input", { type: "number", id: "prod-qty",   required: true, min: "0", value: "0" });
 
     categorySelect = make("select", { id: "prod-category", required: true });
-    const defaultOpt = make("option", { text: "Select a category", value: "" });
+    categorySelect.classList.add("form-select");
+    const defaultOpt = make("option", { text: "Select a category" });
+    defaultOpt.value = "";
     defaultOpt.disabled = true;
     defaultOpt.selected = true;
     categorySelect.appendChild(defaultOpt);
@@ -57,7 +72,6 @@ registerPage("products", async function(app) {
       make("label", { class: "form-label", for: "prod-category", text: "Category" }),
       categorySelect
     );
-    categorySelect.classList.add("form-select");
 
     const submitBtn = make("button", { id: "product-submit-btn", class: "btn btn-success", text: "Add Product" });
     submitBtn.type  = "submit";
@@ -89,36 +103,48 @@ registerPage("products", async function(app) {
 
   // ── Load categories ───────────────────────────────────────────────────────
   try {
-    allCategories = asArray(await apiGet("/categories"));
-    allCategories.forEach(c => {
+    _allCategories = asArray(await apiGet("/categories"));
+    _allCategories.forEach(c => {
       catFilter.appendChild(make("option", { text: c.name, value: String(c.id) }));
-      if (categorySelect) categorySelect.appendChild(make("option", { text: c.name, value: String(c.id) }));
+      if (categorySelect) {
+        const opt = make("option", { text: c.name, value: String(c.id) });
+        categorySelect.appendChild(opt);
+      }
     });
-  } catch {
-    if (categorySelect) categorySelect.appendChild(make("option", { text: "Could not load categories", value: "" }));
-  }
+  } catch {}
 
-  // ── Events ───────────────────────────────────────────────────────────────
   loadProducts();
 
   function applyProdFilter() {
-    const q     = searchInput.value.toLowerCase();
-    const catId = catFilter.value;
-    tbody.querySelectorAll("tr").forEach(tr => {
-      const matchQ   = !q || tr.textContent.toLowerCase().includes(q);
-      const catCell  = tr.cells[2] ? tr.cells[2].textContent : "";
-      // Match by category name or id
-      let matchCat = !catId;
-      if (!matchCat) {
-        const cat = allCategories.find(c => String(c.id) === catId);
-        if (cat) matchCat = catCell === cat.name;
-      }
-      tr.style.display = (matchQ && matchCat) ? "" : "none";
+    const q    = searchInput.value.toLowerCase();
+    const sort = sortSelect.value;
+    const isAllCats = catFilter.selectedIndex === 0;
+    const catId = isAllCats ? null : catFilter.value;
+
+    let rows = _allProducts.filter(p => {
+      const text = [p.id, p.name, p.category, p.price, p.quantity].join(" ").toLowerCase();
+      const matchQ   = !q || text.includes(q);
+      const matchCat = !catId || String(p.categoryId) === catId;
+      return matchQ && matchCat;
     });
+
+    if (sort === "name-asc")   rows = [...rows].sort((a,b) => (a.name||"").localeCompare(b.name||""));
+    if (sort === "name-desc")  rows = [...rows].sort((a,b) => (b.name||"").localeCompare(a.name||""));
+    if (sort === "price-asc")  rows = [...rows].sort((a,b) => a.price - b.price);
+    if (sort === "price-desc") rows = [...rows].sort((a,b) => b.price - a.price);
+    if (sort === "stock-asc")  rows = [...rows].sort((a,b) => a.quantity - b.quantity);
+    if (sort === "stock-desc") rows = [...rows].sort((a,b) => b.quantity - a.quantity);
+
+    const tbody = document.getElementById("products-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (!rows.length) { emptyRow(tbody, 6, "No products match."); return; }
+    rows.forEach(r => tbody.appendChild(buildProductRow(r)));
   }
 
   searchInput.addEventListener("input", applyProdFilter);
   catFilter.addEventListener("change", applyProdFilter);
+  sortSelect.addEventListener("change", applyProdFilter);
 });
 
 function resetProductForm() {
@@ -143,9 +169,9 @@ async function loadProducts() {
   if (!tbody) return;
   tbody.innerHTML = "";
   try {
-    const rows = asArray(await apiGet("/products"));
-    if (!rows.length) { emptyRow(tbody, 6, "No products yet."); return; }
-    rows.forEach(r => tbody.appendChild(buildProductRow(r)));
+    _allProducts = asArray(await apiGet("/products"));
+    if (!_allProducts.length) { emptyRow(tbody, 6, "No products yet."); return; }
+    _allProducts.forEach(r => tbody.appendChild(buildProductRow(r)));
   } catch (err) {
     showError("Could not load products: " + err.message);
     emptyRow(tbody, 6, "Failed to load. Is the API running?");
@@ -169,10 +195,8 @@ function buildProductRow(r) {
       document.getElementById("prod-desc").value        = r.description ?? "";
       document.getElementById("prod-price").value       = r.price ?? "";
       document.getElementById("prod-qty").value         = r.quantity ?? 0;
-
       const select = document.getElementById("prod-category");
       if (select && r.categoryId != null) select.value = String(r.categoryId);
-
       const title = document.getElementById("product-form-title");
       if (title) title.textContent = "Edit Product";
       const submitBtn = document.getElementById("product-submit-btn");

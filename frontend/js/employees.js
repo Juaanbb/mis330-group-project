@@ -1,6 +1,8 @@
 const EMPLOYEE_ROLES = ["Manager", "Sales Associate", "Stock Associate", "Cashier", "Gardening Specialist"];
+let _allEmployees = [];
 
 registerPage("employees", function(app) {
+  _allEmployees = [];
   app.appendChild(make("h1", { class: "h3 mb-4", text: "Employees" }));
 
   const row = make("div", { class: "row g-4" });
@@ -10,8 +12,27 @@ registerPage("employees", function(app) {
   const leftCol = make("div", { class: "col-lg-7" });
   row.appendChild(leftCol);
 
-  const searchInput = make("input", { type: "text", class: "form-control form-control-sm w-auto", placeholder: "Search…" });
-  const { card: tableCard, body: tableBody } = makeCard("All Employees", searchInput);
+  const filterBar   = make("div", { class: "d-flex gap-2 mb-2 flex-wrap" });
+  const searchInput = make("input", { type: "text", class: "form-control form-control-sm", placeholder: "Search…" });
+  searchInput.style.width = "150px";
+
+  const roleFilter = make("select", { class: "form-select form-select-sm w-auto" });
+  roleFilter.appendChild(make("option", { text: "All Roles", value: "" }));
+  EMPLOYEE_ROLES.forEach(r => { const o = make("option", { text: r }); o.value = r; roleFilter.appendChild(o); });
+
+  const sortSelect = make("select", { class: "form-select form-select-sm w-auto" });
+  [
+    ["name-asc",  "Name: A → Z"],
+    ["name-desc", "Name: Z → A"],
+    ["role-asc",  "Role: A → Z"],
+    ["hire-desc", "Hire Date: Newest"],
+    ["hire-asc",  "Hire Date: Oldest"],
+  ].forEach(([val, text]) => { const o = make("option", { text }); o.value = val; sortSelect.appendChild(o); });
+
+  append(filterBar, searchInput, roleFilter, sortSelect);
+  leftCol.appendChild(filterBar);
+
+  const { card: tableCard, body: tableBody } = makeCard("All Employees");
   tableBody.className = "card-body p-0";
   leftCol.appendChild(tableCard);
 
@@ -36,17 +57,21 @@ registerPage("employees", function(app) {
     const phoneIn  = make("input", { type: "text",  id: "emp-phone", required: true });
 
     const roleSelect = make("select", { id: "emp-role", required: true });
-    const defaultRoleOpt = make("option", { text: "Select a role", value: "" });
+    roleSelect.classList.add("form-select");
+    const defaultRoleOpt = make("option", { text: "Select a role" });
+    defaultRoleOpt.value = "";
     defaultRoleOpt.disabled = true;
     defaultRoleOpt.selected = true;
     roleSelect.appendChild(defaultRoleOpt);
-    EMPLOYEE_ROLES.forEach(r => roleSelect.appendChild(make("option", { text: r, value: r })));
+    EMPLOYEE_ROLES.forEach(r => { const o = make("option", { text: r }); o.value = r; roleSelect.appendChild(o); });
+
+    const roleGroup = make("div", { class: "mb-3" });
+    append(roleGroup, make("label", { class: "form-label", for: "emp-role", text: "Role" }), roleSelect);
 
     const passIn = make("input", { type: "password", id: "emp-password", placeholder: "Leave blank to keep current" });
-    const passGroup = make("div", { class: "mb-3" });
-    const passLabel = make("label", { class: "form-label", for: "emp-password", text: "Password" });
-    append(passGroup, passLabel, passIn);
     passIn.classList.add("form-control");
+    const passGroup = make("div", { class: "mb-3" });
+    append(passGroup, make("label", { class: "form-label", for: "emp-password", text: "Password" }), passIn);
 
     const submitBtn = make("button", { class: "btn btn-success", text: "Add Employee", id: "emp-submit-btn" });
     submitBtn.type  = "submit";
@@ -55,15 +80,7 @@ registerPage("employees", function(app) {
 
     const btnRow = make("div", { class: "d-flex gap-2" });
     append(btnRow, submitBtn, cancelBtn);
-    append(form,
-      editIdIn,
-      formGroup("Full Name", nameIn),
-      formGroup("Email", emailIn),
-      formGroup("Phone", phoneIn),
-      selectGroup("Role", roleSelect),
-      passGroup,
-      btnRow
-    );
+    append(form, editIdIn, formGroup("Full Name", nameIn), formGroup("Email", emailIn), formGroup("Phone", phoneIn), roleGroup, passGroup, btnRow);
     formBody.appendChild(form);
 
     form.addEventListener("submit", async function(e) {
@@ -91,12 +108,34 @@ registerPage("employees", function(app) {
 
   loadEmployees();
 
-  searchInput.addEventListener("input", function() {
-    const q = this.value.toLowerCase();
-    tbody.querySelectorAll("tr").forEach(tr => {
-      tr.style.display = tr.textContent.toLowerCase().includes(q) ? "" : "none";
+  function applyEmpFilter() {
+    const q    = searchInput.value.toLowerCase();
+    const role = roleFilter.value;
+    const sort = sortSelect.value;
+
+    let rows = _allEmployees.filter(r => {
+      const text = [r.id, r.name, r.email, r.role].join(" ").toLowerCase();
+      const matchQ    = !q || text.includes(q);
+      const matchRole = !role || r.role === role;
+      return matchQ && matchRole;
     });
-  });
+
+    if (sort === "name-asc")  rows = [...rows].sort((a,b) => (a.name||"").localeCompare(b.name||""));
+    if (sort === "name-desc") rows = [...rows].sort((a,b) => (b.name||"").localeCompare(a.name||""));
+    if (sort === "role-asc")  rows = [...rows].sort((a,b) => (a.role||"").localeCompare(b.role||""));
+    if (sort === "hire-desc") rows = [...rows].sort((a,b) => new Date(b.hireDate) - new Date(a.hireDate));
+    if (sort === "hire-asc")  rows = [...rows].sort((a,b) => new Date(a.hireDate) - new Date(b.hireDate));
+
+    const tbody = document.getElementById("employees-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (!rows.length) { emptyRow(tbody, 6, "No employees match."); return; }
+    rows.forEach(r => tbody.appendChild(buildEmployeeRow(r)));
+  }
+
+  searchInput.addEventListener("input", applyEmpFilter);
+  roleFilter.addEventListener("change", applyEmpFilter);
+  sortSelect.addEventListener("change", applyEmpFilter);
 });
 
 function resetEmpForm() {
@@ -119,9 +158,9 @@ async function loadEmployees() {
   if (!tbody) return;
   tbody.innerHTML = "";
   try {
-    const rows = asArray(await apiGet("/employees"));
-    if (!rows.length) { emptyRow(tbody, 6, "No employees yet."); return; }
-    rows.forEach(r => tbody.appendChild(buildEmployeeRow(r)));
+    _allEmployees = asArray(await apiGet("/employees"));
+    if (!_allEmployees.length) { emptyRow(tbody, 6, "No employees yet."); return; }
+    _allEmployees.forEach(r => tbody.appendChild(buildEmployeeRow(r)));
   } catch (err) {
     showError("Could not load employees: " + err.message);
     emptyRow(tbody, 6, "Failed to load. Is the API running?");
@@ -148,7 +187,6 @@ function buildEmployeeRow(r) {
       if (roleSelect) roleSelect.value = r.role ?? "";
       const passIn = document.getElementById("emp-password");
       if (passIn) passIn.value = "";
-
       const title = document.getElementById("emp-form-title");
       if (title) title.textContent = "Edit Employee";
       const submitBtn = document.getElementById("emp-submit-btn");

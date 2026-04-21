@@ -133,7 +133,7 @@ function showProductModal(p) {
 
   const outOfStock = (p.quantity ?? 0) === 0;
 
-  const backdrop = make("div", { class: "modal-backdrop fade show", id: "product-detail-modal" });
+  const backdrop = make("div", { id: "product-detail-modal" });
   backdrop.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1050;display:flex;align-items:center;justify-content:center";
 
   const dialog = make("div", { class: "card border-0 shadow-lg", id: "prod-modal-dialog" });
