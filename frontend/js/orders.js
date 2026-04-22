@@ -198,25 +198,30 @@ function buildOrderRow(r) {
   if (isManager()) {
     const editBtn = make("button", { class: "btn btn-sm btn-outline-primary me-1", text: "Edit" });
     editBtn.type  = "button";
-    editBtn.addEventListener("click", () => {
-      document.getElementById("edit-order-id").value        = r.id;
-      document.getElementById("order-customer").value       = r.customerId ?? "";
-      document.getElementById("order-employee-edit").value  = r.employeeId ?? "";
-      document.getElementById("order-address").value        = r.address ?? "";
-      document.getElementById("order-city").value           = r.city ?? "";
-      document.getElementById("order-state").value          = r.state ?? "";
-      document.getElementById("order-zipcode").value        = r.zipcode ?? "";
-      const statusSelect = document.getElementById("order-status-edit");
-      if (statusSelect) statusSelect.value = r.orderStatus ?? "Pending";
-      const statusGroup = document.getElementById("order-status-group");
-      if (statusGroup) statusGroup.style.display = "";
-      const title = document.getElementById("order-form-title");
-      if (title) title.textContent = "Edit Order #" + r.id;
-      const submitBtn = document.getElementById("order-submit-btn");
-      if (submitBtn) submitBtn.textContent = "Update Order";
-      const cancelBtn = document.getElementById("order-cancel-btn");
-      if (cancelBtn) cancelBtn.style.display = "";
-      document.getElementById("order-customer").focus();
+    editBtn.addEventListener("click", async () => {
+      try {
+        const order = await apiGet("/orders/" + r.id);
+        document.getElementById("edit-order-id").value        = order.id;
+        document.getElementById("order-customer").value       = order.customerId ?? "";
+        document.getElementById("order-employee-edit").value  = order.employeeId ?? "";
+        document.getElementById("order-address").value        = order.address ?? "";
+        document.getElementById("order-city").value           = order.city ?? "";
+        document.getElementById("order-state").value          = order.state ?? "";
+        document.getElementById("order-zipcode").value        = order.zipcode ?? "";
+        const statusSelect = document.getElementById("order-status-edit");
+        if (statusSelect) statusSelect.value = order.orderStatus ?? "Pending";
+        const statusGroup = document.getElementById("order-status-group");
+        if (statusGroup) statusGroup.style.display = "";
+        const title = document.getElementById("order-form-title");
+        if (title) title.textContent = "Edit Order #" + order.id;
+        const submitBtn = document.getElementById("order-submit-btn");
+        if (submitBtn) submitBtn.textContent = "Update Order";
+        const cancelBtn = document.getElementById("order-cancel-btn");
+        if (cancelBtn) cancelBtn.style.display = "";
+        document.getElementById("order-customer").focus();
+      } catch (err) {
+        showError("Could not load order: " + err.message);
+      }
     });
     td.appendChild(editBtn);
 

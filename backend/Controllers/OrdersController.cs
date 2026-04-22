@@ -32,6 +32,28 @@ public class OrdersController : ControllerBase
         return Ok(orders);
     }
 
+    // GET /orders/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var o = await _db.Orders.FindAsync(id);
+        if (o == null) return NotFound();
+
+        return Ok(new
+        {
+            id          = o.OrderId,
+            customerId  = o.CustomerId,
+            employeeId  = o.EmployeeId,
+            orderDate   = o.OrderDate.ToString("yyyy-MM-dd"),
+            orderStatus = o.OrderStatus,
+            totalAmount = o.TotalAmount,
+            address     = o.Address,
+            city        = o.City,
+            state       = o.State,
+            zipcode     = o.ZipCode
+        });
+    }
+
     // POST /orders
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest req)
@@ -101,6 +123,8 @@ public class OrdersController : ControllerBase
         var order = await _db.Orders.FindAsync(id);
         if (order == null) return NotFound();
 
+        var items = _db.OrderItems.Where(i => i.OrderId == id);
+        _db.OrderItems.RemoveRange(items);
         _db.Orders.Remove(order);
         await _db.SaveChangesAsync();
         return NoContent();
